@@ -16,13 +16,27 @@ def sanitize_name(report_name):
 def discover_streams(service, config):
     profile_id = config.get('profile_id')
 
-    reports = (
-        service
-        .reports()
-        .list(profileId=profile_id)
-        .execute()
-        .get('items')
-    )
+    # only include reports specified in config
+    target_reports = config.get('reports')
+    reports = []
+    if target_reports:
+        parsed = [ r.split(',') for r in target_reports.split(';') ]
+        for report_id, report_name in parsed:
+            reports += [
+                service
+                .reports()
+                .get(profileId=profile_id, reportId=report_id)
+                .execute()
+            ]
+    # otherwise, include all reports the user owns
+    else:
+        reports = (
+            service
+            .reports()
+            .list(profileId=profile_id)
+            .execute()
+            .get('items')
+        )
 
     reports = sorted(reports, key=lambda x: x['id'])
     report_configs = {}

@@ -17,6 +17,20 @@ def report_dimension_fn(dimension):
         return dimension['name']
     raise Exception('Could not determine report dimensions')
 
+def get_activity_metric_names(activities):
+    ''' Turn Report 'activities' into metric names.
+    '''
+    filters = activities.get('filters', [])
+    metricNames = activities.get('metricNames', [])
+    columns = []
+    if filters and metricNames:
+        for f in filters:
+            if 'id' not in f:
+                raise Exception('Missing "id" field for activity filter')
+            for m in metricNames:
+                columns.append("{0}_{1}".format(f['id'],m))
+    return columns
+
 def get_fields(field_type_lookup, report):
     report_type = report['type']
     if report_type == 'STANDARD':
@@ -44,9 +58,12 @@ def get_fields(field_type_lookup, report):
         dimensions = criteria_obj.get('dimensions', [])
         metric_names = criteria_obj.get('metricNames', []) + criteria_obj.get('reachByFrequencyMetricNames', [])
 
+    activities = criteria_obj.get('activities', {})
+    activity_metric_names = get_activity_metric_names(activities)
+
     dimensions = list(map(report_dimension_fn, dimensions))
     metric_names = list(map(report_dimension_fn, metric_names))
-    columns = dimensions + metric_names
+    columns = dimensions + metric_names + activity_metric_names
 
     fieldmap = []
     for column in columns:
