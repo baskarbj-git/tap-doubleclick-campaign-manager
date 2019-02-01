@@ -17,19 +17,19 @@ def report_dimension_fn(dimension):
         return dimension['name']
     raise Exception('Could not determine report dimensions')
 
-def get_activity_metric_names(activities):
-    ''' Turn Report 'activities' into metric names.
+def get_activity_metric_pairs(activities):
+    ''' Turn Report 'activities' into (filter, metric) pairs.
     '''
     filters = activities.get('filters', [])
     metricNames = activities.get('metricNames', [])
-    columns = []
+    pairs = []
     if filters and metricNames:
         for f in filters:
             if 'id' not in f:
                 raise Exception('Missing "id" field for activity filter')
             for m in metricNames:
-                columns.append("{0}_{1}".format(f['id'],m))
-    return columns
+                pairs.append( (f['id'], m) )
+    return pairs
 
 def get_fields(field_type_lookup, report):
     report_type = report['type']
@@ -58,18 +58,25 @@ def get_fields(field_type_lookup, report):
         dimensions = criteria_obj.get('dimensions', [])
         metric_names = criteria_obj.get('metricNames', []) + criteria_obj.get('reachByFrequencyMetricNames', [])
 
-    activities = criteria_obj.get('activities', {})
-    activity_metric_names = get_activity_metric_names(activities)
-
     dimensions = list(map(report_dimension_fn, dimensions))
     metric_names = list(map(report_dimension_fn, metric_names))
-    columns = dimensions + metric_names + activity_metric_names
+    columns = dimensions + metric_names
 
     fieldmap = []
     for column in columns:
         fieldmap.append({
             'name': column.replace('dfa:', ''),
             'type': field_type_lookup.get(column, 'string')
+        })
+
+    activities = criteria_obj.get('activities', {})
+    activity_metric_pairs = get_activity_metric_pairs(activities)
+
+    # handle separately since type is looked up by the activity metric and not the filter
+    for filter_id,metric in activity_metric_pairs:
+        fieldmap.append({
+            'name':"{0}_{1}".format(filter_id, metric.replace('dfa:', '')),
+            'type': field_type_lookup.get(metric, 'string')
         })
 
     return fieldmap
