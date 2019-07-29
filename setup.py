@@ -11,7 +11,7 @@ setup(
     classifiers=["Programming Language :: Python :: 3 :: Only"],
     py_modules=["tap_doubleclick_campaign_manager"],
     install_requires=[
-        "singer-python>=5.1.1",
+        "singer-python==5.6.1",
         "pendulum",
         "google-api-python-client",
         "oauth2client==4.1.2"
