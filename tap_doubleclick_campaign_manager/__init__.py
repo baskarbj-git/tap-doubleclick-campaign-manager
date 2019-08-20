@@ -5,6 +5,7 @@ import sys
 
 import httplib2
 import singer
+from google.oauth2 import service_account
 from singer import metadata
 from googleapiclient import discovery
 from googleapiclient.http import set_user_agent
@@ -23,20 +24,27 @@ REQUIRED_CONFIG_KEYS = [
 ]
 
 def get_service(config):
-    credentials = client.OAuth2Credentials(
-        None,
-        config.get('client_id'),
-        config.get('client_secret'),
-        config.get('refresh_token'),
-        None,
-        GOOGLE_TOKEN_URI,
-        None,
-        revoke_uri=GOOGLE_REVOKE_URI)
-    http = credentials.authorize(httplib2.Http())
-    user_agent = config.get('user_agent')
-    if user_agent:
-        http = set_user_agent(http, user_agent)
-    return discovery.build('dfareporting', 'v3.2', http=http, cache_discovery=False)
+    if 'client_json' not in config:
+        credentials = client.OAuth2Credentials(
+            None,
+            config.get('client_id'),
+            config.get('client_secret'),
+            config.get('refresh_token'),
+            None,
+            GOOGLE_TOKEN_URI,
+            None,
+            revoke_uri=GOOGLE_REVOKE_URI)
+        http = credentials.authorize(httplib2.Http())
+        user_agent = config.get('user_agent')
+        if user_agent:
+            http = set_user_agent(http, user_agent)
+        return discovery.build('dfareporting', 'v3.3', http=http, cache_discovery=False)
+    else:
+        SCOPES = ['https://www.googleapis.com/auth/ddmconversions', 'https://www.googleapis.com/auth/dfareporting',
+                  'https://www.googleapis.com/auth/dfatrafficking']
+        credentials = service_account.Credentials.from_service_account_file(
+            config.get('client_json'), scopes=SCOPES)
+        return discovery.build('dfareporting', 'v3.3', credentials=credentials, cache_discovery=False)
 
 def do_discover(service, config):
     LOGGER.info("Starting discover")
