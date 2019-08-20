@@ -36,15 +36,16 @@ def get_service(config):
             None,
             revoke_uri=GOOGLE_REVOKE_URI)
         http = credentials.authorize(httplib2.Http())
+        user_agent = config.get('user_agent')
+        if user_agent:
+            http = set_user_agent(http, user_agent)
+        return discovery.build('dfareporting', 'v3.1', http=http, cache_discovery=False)
     else:
         SCOPES = ['https://www.googleapis.com/auth/ddmconversions','https://www.googleapis.com/auth/dfareporting','https://www.googleapis.com/auth/dfatrafficking']
         credentials = service_account.Credentials.from_service_account_file(
             config.get('client_json'), scopes=SCOPES)
-        http = credentials.authorize(httplib2.Http())
-    user_agent = config.get('user_agent')
-    if user_agent:
-        http = set_user_agent(http, user_agent)
-    return discovery.build('dfareporting', 'v3.1', http=http, cache_discovery=False)
+        return discovery.build('dfareporting', 'v3.1', credentials=credentials, cache_discovery=False)
+
 
 def do_discover(service, config):
     LOGGER.info("Starting discover")
