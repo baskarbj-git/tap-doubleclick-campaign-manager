@@ -8,6 +8,8 @@ import singer
 from singer import metadata
 from googleapiclient import discovery
 from googleapiclient.http import set_user_agent
+from google.oauth2 import service_account
+
 from oauth2client import client, GOOGLE_TOKEN_URI, GOOGLE_REVOKE_URI
 
 from tap_doubleclick_campaign_manager.discover import discover_streams
@@ -23,16 +25,22 @@ REQUIRED_CONFIG_KEYS = [
 ]
 
 def get_service(config):
-    credentials = client.OAuth2Credentials(
-        None,
-        config.get('client_id'),
-        config.get('client_secret'),
-        config.get('refresh_token'),
-        None,
-        GOOGLE_TOKEN_URI,
-        None,
-        revoke_uri=GOOGLE_REVOKE_URI)
-    http = credentials.authorize(httplib2.Http())
+    if 'client_json' not in config:
+        credentials = client.OAuth2Credentials(
+            None,
+            config.get('client_id'),
+            config.get('client_secret'),
+            config.get('refresh_token'),
+            None,
+            GOOGLE_TOKEN_URI,
+            None,
+            revoke_uri=GOOGLE_REVOKE_URI)
+        http = credentials.authorize(httplib2.Http())
+    else:
+        SCOPES = ['https://www.googleapis.com/auth/ddmconversions','https://www.googleapis.com/auth/dfareporting','https://www.googleapis.com/auth/dfatrafficking']
+        credentials = service_account.Credentials.from_service_account_file(
+            config.get('client_json'), scopes=SCOPES)
+        http = credentials.authorize(httplib2.Http())
     user_agent = config.get('user_agent')
     if user_agent:
         http = set_user_agent(http, user_agent)
